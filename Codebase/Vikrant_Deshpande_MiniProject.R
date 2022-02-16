@@ -281,7 +281,7 @@ In Asia, the dip in average life expectancy (around 1962) can be attributed to a
 
 
 
-Q3. Changes in the relationship between GDP and life expectancy over time: How has the relationship between GDP and life expectancy changed in each continent? Can changes in life expectancy be entirely explained by changes in GDP per capita? Does it look like there's a time effect on life expectancy in addition to a GDP effect? Has there been "convergence" in the sense that perhaps GDP and/or continent don't matter as much as it used to? Are there exceptions to the general patterns?
+Q3. Changes in the relationship between GDP and life expectancy over time: How has the relationship between GDP and life expectancy changed in each continent? Can changes in life expectancy be entirely explained by changes in GDP per capita? Does it look like there's a time effect on life expectancy in addition to a GDP effect? Has there been "convergence" in the sense that perhaps GDP and/or continent dont matter as much as it used to? Are there exceptions to the general patterns?
   
   Ans. 
 
@@ -295,6 +295,24 @@ Americas, Asia, Europe, Oceania: GDP and life expectancy have a more or less lin
 # Has there been "convergence" in the sense that perhaps GDP and/or continent don' matter as much as it used to?
 # Are there exceptions to the general patterns?
 
+
+# Trivariate co-plot with 'given'=year
+tau_param <- 0
+gapminder$transformed.gdpPercap <- box_cox_transformation(gapminder$gdpPercap, tau_param)
+gapminder$transformed.lifeExp <- box_cox_transformation(gapminder$lifeExp,tau_param)
+gapminder %>% 
+  ggplot(aes(x=transformed.gdpPercap, y=transformed.lifeExp, color=continent)) +
+  geom_jitter(shape='o', width=.7, size=2.5) + 
+  geom_smooth(method="lm", se=F) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  facet_wrap(~year, ncol=3) +
+  labs(title="Life-expectancy vs GDP-per-capita for all continents from 1952-2007", x="Log GDP-per-capita", y="Log Life-expectancy") +
+  scale_color_discrete("Continents")
+
+
+
+
+-------------- CHANGES IN LIFE EXPECTANCY CANT BE ENTIRELY EXPLAINED BY CHANGES IN GDP
 # Trivariate co-plot with 'given'=continent
 gapminder %>% 
   mutate(
@@ -311,18 +329,7 @@ gapminder %>%
                         breaks=c("gray", "red", "green"),
                         labels=c("Very Low: x<50", "Average: 50<x<60", "Great: x>60"))
 
-
-# Trivariate co-plot with 'given'=year
-tau_param <- 0
-gapminder$transformed.gdpPercap <- box_cox_transformation(gapminder$gdpPercap, tau_param)
-gapminder$transformed.lifeExp <- box_cox_transformation(gapminder$lifeExp,tau_param)
-gapminder %>% 
-  ggplot(aes(x=transformed.gdpPercap, y=transformed.lifeExp, color=continent)) +
-  geom_jitter(shape='o', width=.7, size=2.5) + 
-  theme(axis.text.x=element_text(angle=45, hjust=1)) +
-  facet_wrap(~year, ncol=3) +
-  labs(title="Yearly Life-expectancy vs GDP-per-capita for all continents", x="Log GDP-per-capita", y="Log Life-expectancy") +
-  scale_color_discrete("Continents")
+In general, within the same continent for a specific year, the countries with higher GDP per capita have a better Life-Expectancy. Each continent has a regression line with a positive slope indicating that rate of GDP change.
 
 
 # CONCLUSION

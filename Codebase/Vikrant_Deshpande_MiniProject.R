@@ -1,103 +1,97 @@
 ---
-title: "Homework 2"
+  title: "Homework 2"
 author: "Vikrant Deshpande, Tanvi Kolhatkar, Saishree Godbole"
 date: "02/13/2022"
 output: html_document
 ---
-
-
-# INTRODUCTION
+  
+  
+  # INTRODUCTION
   In this project, we want to understand and assess the relationship of life expectancy to GDP per capita. For this, we have used the gapminder R package which has information about the life expectancy in 142 countries for a selection of years from 1952 to 2007. To understand the type of relationship between life expectancy and GDP, we planned as follows:
-1. Check if the relationship can be fitted by a linear model and explaining any differences
+  1. Check if the relationship can be fitted by a linear model and explaining any differences
 2. Analyzing the trend of life expectancy over time for individual continents and investigating changes caused by respective countries
 3. Checking if there are any other factors affecting the life expectancy apart from the GDP
 
 
 
-  
+
 install.packages(c("gapminder", "directlabels"))
 require(gapminder)
 require(tidyverse)
 require(broom)
 require(directlabels)
+require(gridExtra)
 
 
 **Can the increase in life expectancy since World War 2 be largely explained by increases in GDP per capita?**
-
-
-Q1. GDP and life expectancy in 2007: How does life expectancy vary with GDP per capita in 2007? Can the trends be well-described by a simple model such as a linear model, or is a more complicated model required? Is the pattern the same or different for every continent? If some continents are different, which ones? Can differences between continents be simply described by an additive or multiplicative shift, or is it more complicated than that?
-
-Ans.
+  
+  
+  Q1. GDP and life expectancy in 2007: How does life expectancy vary with GDP per capita in 2007? Can the trends be well-described by a simple model such as a linear model, or is a more complicated model required? Is the pattern the same or different for every continent? If some continents are different, which ones? Can differences between continents be simply described by an additive or multiplicative shift, or is it more complicated than that?
+  
+  Ans.
 
 We have skipped Oceania from this analysis: there are just 2 countries with great GDP-per-capita values and correspondingly good Life-expectancies.
 
 gapminder.2007 <- gapminder %>% filter((year==2007) & (continent!="Oceania"))
-ggplot(gapminder.2007) + geom_point(aes(x=gdpPercap,y=lifeExp))
+ggplot(gapminder.2007) + 
+  geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.5, alpha=0.5) + 
+  labs(title="Life-Expectancy vs GDP-per-capita", subtitle="Note the parabolic shape- would a Quadratic Linear Regression model work?", x="GDP per capita", y="Life-Expectancy")
 
-In the scatterplot, we see a hollow-down shape. A linear model might not be the best idea for these raw feature-values. Applying a Box-Cox transformation with higher value of Tau like T=2, should give us better linear relationships.
+In the scatterplot, we dont see a straightforward relationship between Life-Expectancy and GDP per capita of nations. A linear model might not be the best idea for these raw feature-values.
 
 Residual plots to show effectiveness of a model, are in the `Appendix` section at the end of this report.
-
-
-box_cox_transformation <- function(data, n){
-  return (((data^n)-1)/n)
-}
-
 
 # Simple Linear model
 gapminder_2007_linear <- gapminder.2007 %>% 
   lm(formula=lifeExp~gdpPercap)
-
-augment(gapminder_2007_linear) %>%
-  ggplot() +
-  geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.5, alpha=0.5) + 
-  geom_line(aes(x=gdpPercap,y=.fitted), color="blue", size=1.3, alpha=0.4) +
-  labs(title="Simple Linear model", subtitle="Trends unexplained, not very useful", x="GDP per capita", y="Life-Expectancy")
-
 
 
 # Polynomial Regression with degree = 2; Quadratic regression
 gapminder_2007_quadratic <- gapminder.2007 %>%
   lm(formula=lifeExp~gdpPercap+I(gdpPercap^2))
 
-augment(gapminder_2007_quadratic) %>% 
-  ggplot() + 
-  geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.5, alpha=0.5) +
-  geom_line(aes(x=gdpPercap,y=.fitted), color="blue", size=1.3, alpha=0.4) +
-  labs(title="Linear model of degree 2", subtitle="Trends partially explained now, but still considerably large residuals", x="GDP per capita", y="Life-Expectancy")
-
 
 # Polynomial Regression with degree = 3
 gapminder_2007_cubic <- gapminder.2007 %>%
   lm(formula=lifeExp~gdpPercap+I(gdpPercap^2)+I(gdpPercap^3))
-
-augment(gapminder_2007_cubic) %>%
-  ggplot() + 
-  geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.5, alpha=0.5) +
-  geom_line(aes(x=gdpPercap,y=.fitted), color="blue", size=1.3, alpha=0.4) +
-  labs(title="Linear model of degree 3", subtitle="Trends better explained now, but still considerable residuals due to noisy data", x="GDP per capita", y="Life-Expectancy")
-
-
-
 
 
 # Localized Estimated Regression : LOESS
 gapminder_2007_loess <- gapminder.2007 %>%
   loess(formula=lifeExp~gdpPercap, span=0.45, degree=2)
 
-augment(gapminder_2007_loess) %>%
-  ggplot() + 
-  geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.5, alpha=0.5) +
-  geom_line(aes(x=gdpPercap,y=.fitted), color="blue", size=1.3, alpha=0.4) +
-  labs(title=expression(paste("LOESS Regression model ",alpha,"= 0.45 and ",lambda,"= 2")), subtitle="Even here we can't capture all the noise in our data. We might need a very high-degree polynomial regression model", x="GDP per capita", y="Life-Expectancy")
+
+# Function to carve model-outputs in required format
+get_model_features <- function(model, model_type) {
+  data <- augment(model) %>% 
+    select(gdpPercap, .fitted, lifeExp) %>%
+    mutate(model=model_type)
+  return (data)
+}
+
+get_model_features(gapminder_2007_linear, "Simple") %>%
+  union(get_model_features(gapminder_2007_quadratic,"Quadratic: Degree 2")) %>%
+  union(get_model_features(gapminder_2007_cubic,"Cubic: Degree 3")) %>%
+  union(get_model_features(gapminder_2007_loess, "LOESS: span= 0.45 and degree= 2")) %>%
+  ggplot() +
+  geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.8, alpha=0.8) +
+  geom_line(aes(x=gdpPercap, y=.fitted, color=model), size=1.5, alpha=0.4) +
+  scale_color_discrete(name="Model-Type") +
+  labs(
+    title=paste("Variations of Linear Regression models fit to the noisy data"), 
+    subtitle="We can't accurately capture all the trends in our data due to noise. We might need a very high-degree polynomial regression model",
+    x="GDP-per-capita", y="Life-Expectancy") +
+  theme(axis.text.x=element_text(angle=45, hjust=1),strip.text=element_text(size = rel(1.1))) +
+  theme_bw()
 
 
 
 
 
 
-
-gapminder.2007 %>%
+--- HOW ARE SOME CONTINENTS DIFFERENT THAN OTHER IN TERMS OF LIFE-EXPECTANCY VS GDP ?
+  
+  gapminder.2007 %>%
   ggplot(mapping=aes(x=gdpPercap, y=lifeExp, color=continent)) +
   geom_point(aes(size=pop)) +
   geom_smooth(method="lm", se=F, color="blue", size=0.3) +
@@ -118,6 +112,15 @@ Africa : We see an unfortunate scatterplot for the countries here. Most have ver
 Americas, Asia: We see a fairly linear relationship between GDP per capita, and the Life-Expectancy. There are a few observable outliers for Americas and Asia. If we fit a simple linear-regression line, the predicted Life-Expectancy increases as GDP-per-capita increases.
 
 Europe: Pretty uninteresting linear relationship between GDP and Life-Expectancy. There isnt a drastic change in Life-Expectancy with higher GDP of European nations. Might be because healthcare was always affordably better in the EU.
+
+
+
+
+# Basic Box-Cox function
+box_cox_transformation <- function(data, n){
+  if (n==0) {return (log(data))}
+  return ((data^n-1)/n)
+}
 
 tau_param <- -2
 gapminder.2007$transformed.lifeExp <- box_cox_transformation(gapminder.2007$lifeExp, tau_param)
@@ -154,8 +157,10 @@ get_quantile_plot <- function(continent1, continent2){
       geom_point(color="dark green", alpha=0.5) +
       theme_bw() +
       labs(title="Life Expectancies",subtitle=paste(continent1," vs ",continent2), x=continent1, y=continent2)
-    )
+  )
 }
+
+
 
 grid.arrange(
   get_quantile_plot("Europe", "Americas"),
@@ -192,8 +197,8 @@ There appears to be true for QQ plot distribution of life expectancy in Asia and
 
 
 Q2. Life expectancy over time by continent: How has average life expectancy changed over time in each continent? Have some continents caught up (at least partially) to others? If so, is this just because of some countries in the continent, or is it more general? Have the changes been linear, or has it been faster/slower in some periods for some continents? What might explain periods of faster/slower change?
-
-Ans.
+  
+  Ans.
 
 
 
@@ -277,25 +282,25 @@ In Asia, the dip in average life expectancy (around 1962) can be attributed to a
 
 
 Q3. Changes in the relationship between GDP and life expectancy over time: How has the relationship between GDP and life expectancy changed in each continent? Can changes in life expectancy be entirely explained by changes in GDP per capita? Does it look like there's a time effect on life expectancy in addition to a GDP effect? Has there been "convergence" in the sense that perhaps GDP and/or continent don't matter as much as it used to? Are there exceptions to the general patterns?
-
-Ans. 
+  
+  Ans. 
 
 
 **Changes in the relationship between GDP and life expectancy over time**
-
-Africa: From Ans.1, we already know that there is not much of a linear-relationship between GDP and Life-Expectancy, and in Ans.2 we saw that there 
+  
+  Africa: From Ans.1, we already know that there is not much of a linear-relationship between GDP and Life-Expectancy, and in Ans.2 we saw that there.
 Americas, Asia, Europe, Oceania: GDP and life expectancy have a more or less linear relationship. Looking at the example of Africa, we cannot entirely attribute the changes to be due to the GDP. We can see that time also contributes to the increase in life expectancy.
 
 #Pending:
-  # Has there been "convergence" in the sense that perhaps GDP and/or continent don't matter as much as it used to?
-  # Are there exceptions to the general patterns?
+# Has there been "convergence" in the sense that perhaps GDP and/or continent don' matter as much as it used to?
+# Are there exceptions to the general patterns?
 
-
+# Trivariate co-plot with 'given'=continent
 gapminder %>% 
   mutate(
     cat.lifeExp=if_else(lifeExp<50, "Very low", if_else(lifeExp<60, "Average", "Great")),
     color.lifeExp=if_else(lifeExp<50, "gray", if_else(lifeExp<60, "red", "green")),
-    ) %>%
+  ) %>%
   ggplot(aes(x=year, y=gdpPercap, color=color.lifeExp)) +
   geom_jitter(shape='o', width=.7, size=2.5) + 
   theme(axis.text.x=element_text(angle=45, hjust=1)) +
@@ -303,8 +308,21 @@ gapminder %>%
   labs(title="Yearly GDP-per-capita for each continent",
        x="Year", y="GDP-per-capita", ) +
   scale_colour_discrete(name="Life-Expectancy categories",
-                      breaks=c("gray", "red", "green"),
-                      labels=c("Very Low: x<50", "Average: 50<x<60", "Great: x>60"))
+                        breaks=c("gray", "red", "green"),
+                        labels=c("Very Low: x<50", "Average: 50<x<60", "Great: x>60"))
+
+
+# Trivariate co-plot with 'given'=year
+tau_param <- 0
+gapminder$transformed.gdpPercap <- box_cox_transformation(gapminder$gdpPercap, tau_param)
+gapminder$transformed.lifeExp <- box_cox_transformation(gapminder$lifeExp,tau_param)
+gapminder %>% 
+  ggplot(aes(x=transformed.gdpPercap, y=transformed.lifeExp, color=continent)) +
+  geom_jitter(shape='o', width=.7, size=2.5) + 
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  facet_wrap(~year, ncol=3) +
+  labs(title="Yearly Life-expectancy vs GDP-per-capita for all continents", x="Log GDP-per-capita", y="Log Life-expectancy") +
+  scale_color_discrete("Continents")
 
 
 # CONCLUSION

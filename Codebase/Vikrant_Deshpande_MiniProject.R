@@ -301,7 +301,6 @@ Ans.
 tau_param <- 0
 gapminder$transformed.gdpPercap <- box_cox_transformation(gapminder$gdpPercap, tau_param)
 gapminder %>% 
-  filter(continent!="Oceania") %>%
   ggplot(aes(x=transformed.gdpPercap, y=lifeExp, color=continent)) +
   geom_jitter(width=.7, size=2.5, alpha=0.7) + 
   geom_smooth(method="lm", se=F, size=1.2, alpha=0.6) +
@@ -310,12 +309,12 @@ gapminder %>%
   labs(title="Life-expectancy vs GDP-per-capita for all continents from 1952-2007", x="Log GDP-per-capita", y="Life-expectancy") +
   scale_color_discrete("Continents")
 
-Each continent has a regression line with a positive slope indicating that for higher GDP-per-capita, Life-Expectancy is higher on average. For each facet of year, note that some points lie below the linear-regression line, and this can be attributed to "regression-to-the-means".
+  Each continent has a regression line with a positive slope indicating that for higher GDP-per-capita, Life-Expectancy is higher on average. For each facet of year, note that some points lie below the linear-regression line, and this can be attributed to "regression-to-the-means".
 Important Observations:
   Africa in 1952 had a regression line almost parallel to the X-axis: life-expectancy was just in general low there, irrespective of GDP. As we move through time till 2007, we see the slope change to a more positive outlook.
   Europe and Asia have somewhat of parallel regression-lines in 1952, with positive slopes. Over time, we see these lines converge towards a fantastic life-expectancy of approximately 80 years.
-  Americas and Europe seems to have an ideal regression-line with a positive slope indicating better Life-Expectancy for countries with higher GDP-per-capita. As we move from 1952 to 2007, the regression-lines for Europe, Asia, and Americas seemingly get merged into the same line indicative of this idealistic hypothesis.
-  This might be proof that after 2010, such continents with developed countries, will have a regression-line with similar slope converging to a life-expectancy of 80.
+  Americas and Europe seems to have an ideal regression-line with a small positive slope that points to a better Life-Expectancy for countries with higher GDP-per-capita. As we move from 1952 to 2007, the regression-lines for Europe, Asia, and Americas seemingly get merged into the same line (almost parallel to X-axis) indicative of this idealistic hypothesis.
+  This might be proof that after 2010, such continents with developed nations, will have a regression-line with small slope converging to a life-expectancy of 80.
 
 
 

@@ -75,11 +75,11 @@ get_model_features(gapminder_2007_linear, "Simple Linear") %>%
   union(get_model_features(gapminder_2007_loess, "LOESS: span= 0.45 and degree= 2")) %>%
   ggplot() +
   geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.8, alpha=0.8) +
-  geom_line(aes(x=gdpPercap, y=.fitted, color=model), size=1.5, alpha=0.4) +
+  geom_line(aes(x=gdpPercap, y=.fitted, color=model), size=1.5, alpha=0.6) +
   scale_color_discrete(name="Model-Type") +
   labs(
     title=paste("Variations of Linear Regression models fit to the noisy data"), 
-    subtitle="We can't accurately capture all the trends in our data due to noise. We might need a very high-degree polynomial regression model",
+    subtitle="We can't accurately capture all the trends in our data due to noise. \nWe might need a very high-degree polynomial regression model",
     x="GDP-per-capita", y="Life-Expectancy") +
   theme(axis.text.x=element_text(angle=45, hjust=1),strip.text=element_text(size = rel(1.1))) +
   theme_bw()

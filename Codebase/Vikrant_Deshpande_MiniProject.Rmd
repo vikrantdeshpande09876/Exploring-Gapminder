@@ -80,11 +80,11 @@ get_model_features(gapminder_2007_linear, "Simple Linear") %>%
   union(get_model_features(gapminder_2007_loess, "LOESS: span= 0.45 and degree= 2")) %>%
   ggplot() +
   geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.8, alpha=0.8) +
-  geom_line(aes(x=gdpPercap, y=.fitted, color=model), size=1.5, alpha=0.4) +
+  geom_line(aes(x=gdpPercap, y=.fitted, color=model), size=1.5, alpha=0.6) +
   scale_color_discrete(name="Model-Type") +
   labs(
     title=paste("Variations of Linear Regression models fit to the noisy data"), 
-    subtitle="We can't accurately capture all the trends in our data due to noise. We might need a very high-degree polynomial regression model",
+    subtitle="We can't accurately capture all the trends in our data due to noise. \nWe might need a very high-degree polynomial regression model",
     x="GDP-per-capita", y="Life-Expectancy") +
   theme(axis.text.x=element_text(angle=45, hjust=1),strip.text=element_text(size = rel(1.1))) +
   theme_bw()
@@ -170,6 +170,8 @@ get_quantile_plot <- function(continent1, continent2){
   )
 }
 
+
+
 grid.arrange(
   top="QQ-plots for Life Expectancies",
   get_quantile_plot("Europe", "Americas"),
@@ -218,7 +220,6 @@ Average life expectancy in Africa has had a steady but relatively small increase
 
 
 ```{r}
-#average life exp change over time for each continent
 gapminder %>%
   group_by(continent, year) %>%
   summarise(lifeExp=weighted.mean(x=lifeExp, w=pop, na.rm=T)) %>%
@@ -325,7 +326,21 @@ Important Observations:
 
 -------------- CHANGES IN LIFE EXPECTANCY CANT BE ENTIRELY EXPLAINED BY CHANGES IN GDP
 ```{r,fig.width=16,fig.height=12}
-# Trivariate co-plot with 'given'=continent
+tau_param <- 0
+gapminder$transformed.gdpPercap <- box_cox_transformation(gapminder$gdpPercap, tau_param)
+gapminder %>% 
+  ggplot(aes(x=transformed.gdpPercap, y=lifeExp, color=continent)) +
+  geom_jitter(width=.7, size=2.5, alpha=0.5) + 
+  geom_smooth(method="lm", se=F, size=1, alpha=0.6) +
+  theme(axis.text.x=element_text(hjust=1), strip.text=element_text(size=rel(1.1))) +
+  facet_wrap(~year, ncol=3) +
+  labs(title="Life-expectancy vs GDP-per-capita for all continents from 1952-2007", x="Log GDP-per-capita", y="Life-expectancy") +
+  scale_color_discrete("Continents")
+
+
+
+
+
 gapminder %>% 
   filter(continent!="Oceania") %>%
   mutate(color.lifeExp=if_else(lifeExp<50, "gray", if_else(lifeExp<60, "red", "green"))) %>%

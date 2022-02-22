@@ -122,25 +122,6 @@ box_cox_transformation <- function(data, n){
   return ((data^n-1)/n)
 }
 
-tau_param <- -2
-gapminder.2007$transformed.lifeExp <- box_cox_transformation(gapminder.2007$lifeExp, tau_param)
-
-gapminder.2007 %>%
-  ggplot(mapping=aes(x=gdpPercap, y=transformed.lifeExp, color=continent)) +
-  geom_point(aes(size=pop)) +
-  geom_smooth(method="lm", se=F, color="blue", size=0.3, weight=aes(pop)) +
-  facet_wrap(~continent, scales="free_x") +
-  theme(axis.text.x=element_text(angle=45, hjust=1), strip.text=element_text(size = rel(1.1))) +
-  labs(title="2007 Life-Expectancy vs GDP-per-capita for each continent",
-       subtitle=expression(paste("Life-Expectancy is transformed using Box-Cox transformation: ",tau,"=(-2) . Simple Linear regression fits better now.")),
-       x="GDP per capita", y="Life-Expectancy transformed") +
-  scale_color_discrete("Continent (colors)") +
-  scale_size_continuous("Population (sizes)")
-
-
-Africa: There is still no observable linear relationship between the features. We shouldnt model the distribution for Africa using a Linear-model.
-
-Americas, Asia, and Europe: We see a better linear relationship between the transformed Life-Expectancy, and the GDP-per-capita. Now we see fewer observable outliers for Americas and Asia, if we fit a linear-regression model.
 
 
 
@@ -157,7 +138,7 @@ get_quantile_plot <- function(continent1, continent2){
       ggplot(aes(x=x, y=y)) +
       geom_point(color="dark green", alpha=0.5) +
       theme_bw() +
-      labs(title=paste(continent2," vs ",continent1), x=continent1, y=continent2)
+      labs(title=paste0(continent2," vs ",continent1), x=continent1, y=continent2)
   )
 }
 
@@ -210,9 +191,11 @@ Continents of Europe and Americas started at high average life expectancies and 
 Average life expectancy in Africa has had a steady but relatively small increase from 30-50 to 40-60.
 
 #average life exp change over time for each continent
-gapminder %>%
+gapminder.avg_trends <- gapminder %>%
   group_by(continent, year) %>%
-  summarise(lifeExp=weighted.mean(x=lifeExp, w=pop, na.rm=T)) %>%
+  summarise(lifeExp=weighted.mean(x=lifeExp, w=pop, na.rm=T)) 
+
+gapminder.avg_trends %>%
   ggplot(aes(x =year, y=lifeExp, colour=continent)) +
   geom_line(size=1.2) +
   labs(title="Yearly Average Life-Expectancy for each continent",
@@ -227,6 +210,8 @@ gapminder %>%
   geom_line(lwd=1, show.legend=F)+
   facet_wrap(~continent) +
   scale_color_manual(values=country_colors) +
+  labs(title="Yearly Life-Expectancies for countries in each continent",
+       x="Year", y="Life Expectancy") +
   theme(strip.text=element_text(size = rel(1.1)))
 
 
@@ -235,11 +220,33 @@ gapminder %>%
 #Have some continents caught up (at least partially) to others? 
 #If so, is this just because of some countries in the continent, or is it more general?
 #deep dive into Asia as it has caught up to other continents
-gapminder %>%
+gapminder.mod <- gapminder %>%
   filter(continent=="Asia") %>%
+  mutate(
+    color.country=if_else(country=='China','red',if_else(country=='Cambodia','navyblue','brown')),
+    visibility.country=if_else(country=='China',1,if_else(country=='Cambodia',1,0.6)),
+    label.country=if_else(country=='China','China',if_else(country=='Cambodia','Cambodia','')),
+    )
+
+colors <- as.character(gapminder.mod$color.country)
+names(colors) <- as.character(gapminder.mod$country)
+
+
+
+gapminder.avg_trends_asia <- gapminder.avg_trends %>%
+  filter(continent=='Asia') %>%
+  mutate(country='Overall Asia')
+
+
+gapminder.mod %>%
   ggplot(aes(x=year, y=lifeExp, group=country, color=country)) +
-  geom_line(size=1.5, show.legend=F) +
-  geom_dl(aes(label=country), method=list("last.points"))
+  geom_line(aes(alpha=visibility.country), size=1.6, show.legend=F) +
+  scale_color_manual(values=colors) +
+  labs(title="Yearly Life-Expectancies for Asia focusing on significant countries",
+       subtitle="Asia's overall trend impacted more by China, than Cambodia",
+       x="Year", y="Life Expectancy") +
+  geom_dl(aes(label=label.country), method=list("first.points", "last.points")) +
+  geom_line(data=gapminder.avg_trends_asia, mapping=aes(x=year,y=lifeExp), color='darkgreen', size=3.0, alpha=0.7)
 
 In Asia, the dip in average life expectancy (around 1962) can be attributed to a dip in China. China has the largest population in Asia and contributes heavily to the weighted average life expectancy of the entire continent. The causes of these changes could be attributed socio-economic changes and natural disasters such as famines occurring around 1962. Apart from this, the majority of the countries have had a steady growth in their life expectancy which has contributed to the overall growth of Asia.
 

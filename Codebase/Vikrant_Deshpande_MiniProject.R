@@ -58,7 +58,7 @@ gapminder_2007_cubic <- gapminder.2007 %>%
 
 # Localized Estimated Regression : LOESS
 gapminder_2007_loess <- gapminder.2007 %>%
-  loess(formula=lifeExp~gdpPercap, span=0.45, degree=2)
+  loess(formula=lifeExp~gdpPercap, span=1, degree=2)
 
 
 # Function to carve model-outputs in required format
@@ -72,7 +72,7 @@ get_model_features <- function(model, model_type) {
 get_model_features(gapminder_2007_linear, "Simple Linear") %>%
   union(get_model_features(gapminder_2007_quadratic,"Quadratic: Degree 2")) %>%
   union(get_model_features(gapminder_2007_cubic,"Cubic: Degree 3")) %>%
-  union(get_model_features(gapminder_2007_loess, "LOESS: span= 0.45 and degree= 2")) %>%
+  union(get_model_features(gapminder_2007_loess, "LOESS: span= 1 and degree= 2")) %>%
   ggplot() +
   geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.8, alpha=0.8) +
   geom_line(aes(x=gdpPercap, y=.fitted, color=model), size=1.5, alpha=0.6) +
@@ -112,15 +112,6 @@ Africa : We see an unfortunate scatterplot for the countries here. Most have ver
 Americas, Asia: We see a fairly linear relationship between GDP per capita, and the Life-Expectancy. There are a few observable outliers for Americas and Asia. If we fit a simple linear-regression line, the predicted Life-Expectancy increases as GDP-per-capita increases.
 
 Europe: Pretty uninteresting linear relationship between GDP and Life-Expectancy. There isnt a drastic change in Life-Expectancy with higher GDP of European nations. Might be because healthcare was always affordably better in the EU.
-
-
-
-
-# Basic Box-Cox function
-box_cox_transformation <- function(data, n){
-  if (n==0) {return (log(data))}
-  return ((data^n-1)/n)
-}
 
 
 
@@ -210,7 +201,7 @@ gapminder %>%
   geom_line(lwd=1, show.legend=F)+
   facet_wrap(~continent) +
   scale_color_manual(values=country_colors) +
-  labs(title="Yearly Life-Expectancies for countries in each continent",
+  labs(title="Yearly Life-Expectancy for countries in each continent",
        x="Year", y="Life Expectancy") +
   theme(strip.text=element_text(size = rel(1.1)))
 
@@ -246,7 +237,7 @@ gapminder.mod %>%
        subtitle="Asia's overall trend impacted more by China, than Cambodia",
        x="Year", y="Life Expectancy") +
   geom_dl(aes(label=label.country), method=list("first.points", "last.points")) +
-  geom_line(data=gapminder.avg_trends_asia, mapping=aes(x=year,y=lifeExp), color='darkgreen', size=3.0, alpha=0.7)
+  geom_line(data=gapminder.avg_trends_asia, mapping=aes(x=year,y=lifeExp), color='darkgreen', size=3.0, alpha=0.5)
 
 In Asia, the dip in average life expectancy (around 1962) can be attributed to a dip in China. China has the largest population in Asia and contributes heavily to the weighted average life expectancy of the entire continent. The causes of these changes could be attributed socio-economic changes and natural disasters such as famines occurring around 1962. Apart from this, the majority of the countries have had a steady growth in their life expectancy which has contributed to the overall growth of Asia.
 
@@ -297,6 +288,11 @@ Ans.
 ----------- CHANGES IN THE RELATIONSHIP BETWEEN GDP AND LIFE EXPECTANCY OVER TIME FOR EACH CONTINENT
   
 
+# Basic Box-Cox function
+box_cox_transformation <- function(data, n){
+  if (n==0) {return (log(data))}
+  return ((data^n-1)/n)
+}
 
 # Trivariate co-plot with 'given'=year
 tau_param <- 0
@@ -304,11 +300,16 @@ gapminder$transformed.gdpPercap <- box_cox_transformation(gapminder$gdpPercap, t
 gapminder %>% 
   ggplot(aes(x=transformed.gdpPercap, y=lifeExp, color=continent)) +
   geom_jitter(width=.7, size=2.5, alpha=0.5) + 
-  geom_smooth(method="lm", se=F, size=1, alpha=0.6) +
+  geom_smooth(method="loess", se=F, size=1, alpha=0.9, span=1, method.args=list(degree=2)) +
   theme(axis.text.x=element_text(hjust=1), strip.text=element_text(size=rel(1.1))) +
   facet_wrap(~year, ncol=3) +
-  labs(title="Life-expectancy vs GDP-per-capita for all continents from 1952-2007", x="Log GDP-per-capita", y="Life-expectancy") +
+  labs(
+    title="Life-expectancy vs GDP-per-capita for all continents from 1952-2007", 
+    subtitle="LOESS regression lines created using span=1, degree=2",
+    x="Log GDP-per-capita", 
+    y="Life-expectancy") +
   scale_color_discrete("Continents")
+
 
   Each continent has a regression line with a positive slope indicating that for higher GDP-per-capita, Life-Expectancy is higher on average. For each facet of year, note that some points lie below the linear-regression line, and this can be attributed to "regression-to-the-means".
 Important Observations:
@@ -323,22 +324,20 @@ Important Observations:
 # Trivariate co-plot with 'given'=continent
 gapminder %>% 
   filter(continent!="Oceania") %>%
-  mutate(color.lifeExp=if_else(lifeExp<50, "gray", if_else(lifeExp<60, "red", "green"))) %>%
-  ggplot(aes(x=year, y=gdpPercap, color=color.lifeExp)) +
-  geom_jitter(shape='o', width=.7, size=2.5) + 
+  ggplot(aes(x=year, y=gdpPercap, color=lifeExp)) +
+  geom_jitter(shape='o', width=.7, size=3) + 
   theme(axis.text.x=element_text(angle=45, hjust=1), strip.text=element_text(size=rel(1.1))) +
   theme_bw() +
   facet_wrap(~continent, ncol=2) +
   labs(title="GDP-per-capita for each continent vs Time",
        subtitle="The numerical response variable life-expectancy is converted to 3 categories for easy viewing",
-       x="Year", y="GDP-per-capita", ) +
-  scale_colour_discrete(name="Life-Expectancy",
-                        breaks=c("gray", "red", "green"),
-                        labels=c("Very Low: Age<50", "Average: 50<Age<60", "Great: Age>60"))
+       x="Year", 
+       y="GDP-per-capita") +
+  scale_color_gradient("Life\nExpectancy", guide="colorbar", low="#0400ff", high="#00ab0e")
 
 
 Changes in life-expectancy cant be entirely explained by just changes in GDP. There does seem to be a time-factor involved in this.
-Within a continent like Africa, even though the average GDP of countries stays similar, the Life-Expectancy just seems to get better.
+For example, within Africa and Americas, even though the GDP of countries stays similar (0 to 15000), the Life-Expectancy just seems to get better. In other words, the number of green dots increases from left to right even without a big jump in GDP.
 
 # CONCLUSION
 

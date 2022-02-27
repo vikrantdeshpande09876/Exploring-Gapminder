@@ -1,5 +1,5 @@
 ---
-title: "Homework 2"
+title: "MiniProject-1"
 author: "Vikrant Deshpande, Tanvi Kolhatkar, Saishree Godbole"
 date: "02/13/2022"
 output: html_document
@@ -96,6 +96,12 @@ get_model_features <- function(model, model_type) {
 #   theme_bw()
 # 
 
+
+par(mfrow=c(1,2))
+ggplot(gapminder.2007) + 
+  geom_point(aes(x=gdpPercap,y=lifeExp), color="darkgreen", size=1.5, alpha=0.5) + 
+  labs(title="Life-Expectancy vs GDP-per-capita", subtitle="Note the parabolic shape- would a Quadratic Linear Regression model work?", x="GDP per capita", y="Life-Expectancy") +
+  theme_bw()
 
 get_model_features(gapminder_2007_linear, "Simple Linear") %>%
   ggplot() +
